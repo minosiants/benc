@@ -24,6 +24,7 @@ lazy val root = (project in file("."))
     addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
   )
   .settings(licenceSettings)
+  .settings(githubPackagesSettings)
   .settings(releaseProcessSettings)
 
 lazy val licenceSettings = Seq(
