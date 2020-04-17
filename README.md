@@ -14,8 +14,22 @@ Bencoding library for scala
 1. Encode case classes to bencoding  
 2. Decode bencoding to case classes
 
-### Installation
+### Usage
+
+```scala
+resolvers += "Github packages minosiants" at "https://maven.pkg.github.com/minosiants/_"
+
+libraryDependencies += "com.minosiatns" %% "benc" % "0.1"
+```
 
 
 ### Example 
+
+```scala
+  final case class Id(id: String)
+  final case class Author(name: String, age: Option[Int])
+  final case class Book(id: Id, author: Author, content: BitVector, pages: Long)
+  val book = Book(...)
+  BEncoder[Book].encode(book).flatMap(bt => BDecoder[Book].decode(bt))  
+```
 
