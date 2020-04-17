@@ -1,11 +1,9 @@
 scalaVersion := "2.13.1"
 
-val catsVersion           = "2.1.0"
-val catsEffectVersion     = "2.1.2"
-val specs2Version         = "4.8.3"
-val logbackVersion        = "1.2.3"
-val scalacheckVersion     = "1.14.1"
-val catsEffectTestVersion = "0.3.0"
+val catsVersion       = "2.1.0"
+val shaplessVersion   = "2.3.3"
+val specs2Version     = "4.8.3"
+val scalacheckVersion = "1.14.1"
 
 lazy val root = (project in file("."))
   .settings(
@@ -13,19 +11,20 @@ lazy val root = (project in file("."))
     name := "benc",
     scalaVersion := "2.13.1",
     libraryDependencies ++= Seq(
-      "org.typelevel"   %% "cats-core"                  % catsVersion,
-      "org.typelevel"   %% "cats-effect"                % catsEffectVersion,
-      "org.scalacheck"  %% "scalacheck"                 % scalacheckVersion % "test",
-      "com.codecommit"  %% "cats-effect-testing-specs2" % catsEffectTestVersion % "test",
-      "ch.qos.logback"  % "logback-classic"             % logbackVersion
+      "org.typelevel"  %% "cats-core"   % catsVersion,
+      "com.chuusai"    %% "shapeless"   % shaplessVersion,
+      "org.scalacheck" %% "scalacheck"  % scalacheckVersion % Test,
+      "org.specs2"     %% "specs2-core" % specs2Version % Test
     ),
     addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
-  ).settings(releaseProcessSettings)
+  )
+  .settings(releaseProcessSettings)
 
 import ReleaseTransformations._
 lazy val releaseProcessSettings = Seq(
   releaseIgnoreUntrackedFiles := true,
-  releaseProcess := Seq[ReleaseStep](checkSnapshotDependencies,
+  releaseProcess := Seq[ReleaseStep](
+    checkSnapshotDependencies,
     inquireVersions,
     runClean,
     runTest,
@@ -35,7 +34,6 @@ lazy val releaseProcessSettings = Seq(
     publishArtifacts,
     setNextVersion,
     commitNextVersion,
-    pushChanges))
-
-
-
+    pushChanges
+  )
+)
