@@ -34,6 +34,11 @@ lazy val licenceSettings = Seq(
   ))
 )
 
+lazy val githubPackagesSettings = Seq(
+  githubOwner := "minosiants",
+  githubRepository := "benc"
+)
+
 import ReleaseTransformations._
 lazy val releaseProcessSettings = Seq(
   releaseIgnoreUntrackedFiles := true,
