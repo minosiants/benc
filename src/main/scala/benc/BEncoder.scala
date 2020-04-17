@@ -82,11 +82,12 @@ object BEncoder {
 
   implicit def hlistEncoder[K <: Symbol, H, T <: HList](
       implicit
+      fieldName: FieldName,
       witness: Witness.Aux[K],
       henc: Lazy[BEncoder[H]],
       tenc: BMapEncoder[T]
   ): BMapEncoder[FieldType[K, H] :: T] = {
-    val name = witness.value.name
+    val name = fieldName.name(witness.value)
     bmapInstance { v =>
       val value: Result[Map[String, BType]] =
         (henc.value.encode(v.head), henc.value) match {

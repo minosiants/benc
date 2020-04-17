@@ -104,11 +104,12 @@ object BDecoder {
 
   implicit def hlistDecoder[K <: Symbol, H, T <: HList](
       implicit
+      fn: FieldName,
       witness: Witness.Aux[K],
       henc: Lazy[BDecoder[H]],
       tenc: BMapDecoder[T]
   ): BMapDecoder[FieldType[K, H] :: T] = {
-    val name = witness.value.name
+    val name = fn.name(witness.value)
     bmapDInstance { bmap =>
       val value: Result[H] = (bmap.m.get(name), henc.value) match {
         case (None, _: OptionBDecoder[_]) =>

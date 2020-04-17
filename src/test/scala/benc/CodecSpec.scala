@@ -16,10 +16,10 @@
 
 package benc
 
+import benc.BType.{ BMap, BString }
 import org.specs2.ScalaCheck
 import org.specs2.mutable.Specification
 import scodec.bits.BitVector
-
 import org.scalacheck._
 import cats.syntax.either._
 
@@ -32,6 +32,22 @@ class CodecSpec extends Specification with ScalaCheck {
         BEncoder[Book].encode(book).flatMap(bt => BDecoder[Book].decode(bt))
 
       result ==== book.asRight
+    }
+    "custom fieldName in encoder" in Prop.forAll(idGen) { id =>
+      implicit object upperCaseFiledName extends FieldName {
+        override def name[K <: Symbol](k: K): String = k.name.toUpperCase
+      }
+      val result = BEncoder[Id].encode(id)
+
+      result ==== BMap(Map("ID" -> BString(BitVector(id.id.getBytes())))).asRight
+    }
+    "custom fieldName in decoder" in Prop.forAll(idGen) { id =>
+      implicit object upperCaseFiledName extends FieldName {
+        override def name[K <: Symbol](k: K): String = k.name.toUpperCase
+      }
+      val result =
+        BMap(Map("ID" -> BString(BitVector(id.id.getBytes())))).as[Id]
+      result ==== id.asRight
     }
   }
 }
