@@ -23,7 +23,16 @@ lazy val root = (project in file("."))
     ),
     addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
   )
+  .settings(licenceSettings)
   .settings(releaseProcessSettings)
+
+lazy val licenceSettings = Seq(
+  organizationName := "Kaspar Minosiants",
+  startYear := Some(2020),
+  licenses += ("Apache-2.0", new URL(
+    "https://www.apache.org/licenses/LICENSE-2.0.txt"
+  ))
+)
 
 import ReleaseTransformations._
 lazy val releaseProcessSettings = Seq(
