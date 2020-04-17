@@ -1,4 +1,5 @@
 ## Benc
+![build](https://github.com/minosiants/benc/workflows/build/badge.svg)  
 Bencoding library for scala
 
 ### Overview
