@@ -19,7 +19,7 @@ Bencoding library for scala
 ```scala
 resolvers += "Github packages minosiants" at "https://maven.pkg.github.com/minosiants/_"
 
-libraryDependencies += "com.minosiatns" %% "benc" % "0.1"
+libraryDependencies += "com.minosiatns" %% "benc" % "0.2.0"
 ```
 
 
