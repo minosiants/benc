@@ -23,8 +23,8 @@ import org.specs2.mutable.Specification
 import scodec.bits.BitVector
 import BType._
 
-class BinSpec extends Specification with ScalaCheck {
-  import BinSpec._
+class BencSpec extends Specification with ScalaCheck {
+  import BencSpec._
 
   "BTypeCodec" should {
     "encode bnum" in prop[BNum]
@@ -40,15 +40,15 @@ class BinSpec extends Specification with ScalaCheck {
   def prop[A <: BType: Gen]: Prop = {
     val gen = implicitly[Gen[A]]
     forAll(gen) { bt =>
-      val encoded = BType.toBin(bt)
-      val decoded = encoded.flatMap(BType.fromBin)
+      val encoded = ToBenc.instance.toBenc(bt)
+      val decoded = encoded.flatMap(FromBenc.instance.fromBenc)
       decoded ==== Right(bt)
     }
   }
 
 }
 
-object BinSpec {
+object BencSpec {
 
   implicit val bstringGen: Gen[BString] = for {
     str <- Gen.asciiPrintableStr

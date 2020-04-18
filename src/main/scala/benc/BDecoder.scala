@@ -16,6 +16,9 @@
 
 package benc
 
+import java.nio.charset.Charset
+import java.time.{ Instant, LocalDate, LocalDateTime, ZoneId }
+
 import benc.BType._
 import cats.instances.either._
 import cats.instances.list._
@@ -26,6 +29,8 @@ import scodec.bits.BitVector
 import scodec.codecs._
 import shapeless._
 import shapeless.labelled.{ FieldType, field }
+
+import scala.util.Try
 
 trait BDecoder[A] {
 
@@ -54,7 +59,7 @@ object BDecoder {
     }
 
   implicit val bitVectorDecoder: BDecoder[BitVector] = instance(
-    _.bstring.toRight(Error.CodecError("Empty"))
+    _.bstring.toRight(BencError.CodecError("Empty"))
   )
   implicit val utf8StringDecoder: BDecoder[String] =
     bitVectorDecoder.emap(
@@ -62,17 +67,17 @@ object BDecoder {
         .decode(_)
         .toEither
         .map(_.value)
-        .leftMap(err => Error.CodecError(err.message))
+        .leftMap(err => BencError.CodecError(err.message))
     )
   implicit val longDecoder: BDecoder[Long] = instance(
-    _.bnum.toRight(Error.CodecError("Empty"))
+    _.bnum.toRight(BencError.CodecError("Empty"))
   )
   implicit val intDecoder: BDecoder[Int] = longDecoder.map(_.toInt)
   implicit def listDecoder[A: BDecoder]: BDecoder[List[A]] =
     instance(
       _.blist
         .traverse(_.traverse(v => BDecoder[A].decode(v)))
-        .flatMap(_.toRight(Error.CodecError("Empty")))
+        .flatMap(_.toRight(BencError.CodecError("Empty")))
     )
 
   //to handel option case in hlistDecoder
@@ -90,14 +95,14 @@ object BDecoder {
     def decode(bt: BType): Result[A] = {
       bt.bmap
         .traverse(v => decodeBMap(BMap(v)))
-        .flatMap(_.toRight(Error.CodecError("Empty")))
+        .flatMap(_.toRight(BencError.CodecError("Empty")))
     }
   }
   def bmapDInstance[A](f: BMap => Result[A]): BMapDecoder[A] =
     new BMapDecoder[A] {
       override def decodeBMap(bm: BMap): Result[A] = f(bm)
-
     }
+
   implicit val hnilDncoder: BMapDecoder[HNil] = bmapDInstance(
     _ => HNil.asRight
   )
@@ -113,9 +118,9 @@ object BDecoder {
     bmapDInstance { bmap =>
       val value: Result[H] = (bmap.m.get(name), henc.value) match {
         case (None, _: OptionBDecoder[_]) =>
-          None.asInstanceOf[H].asRight[Error]
+          None.asInstanceOf[H].asRight[BencError]
         case (None, _) =>
-          Error.CodecError(s"filed $name is missing").asLeft[H]
+          BencError.CodecError(s"filed $name is missing").asLeft[H]
         case (Some(bt), dec) =>
           dec.decode(bt)
       }

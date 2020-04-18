@@ -58,7 +58,10 @@ object BEncoder {
   )
   implicit val stringBEncoder: BEncoder[String] = bitVectorBEncoder.econtramap(
     str =>
-      utf8.encode(str).toEither.leftMap(err => Error.CodecError(err.message))
+      utf8
+        .encode(str)
+        .toEither
+        .leftMap(err => BencError.CodecError(err.message))
   )
   implicit val longBEncoder: BEncoder[Long] = instance(num => BNum(num).asRight)
   implicit val intBEncoder: BEncoder[Int]   = longBEncoder.contramap(_.toLong)
@@ -72,7 +75,7 @@ object BEncoder {
     new OptionBEncoder[Option[A]] {
       override def encode(a: Option[A]): Result[BType] = a match {
         case Some(value) => BEncoder[A].encode(value)
-        case None        => Error.NotFound.asLeft
+        case None        => BencError.NotFound.asLeft
       }
     }
 
@@ -92,7 +95,7 @@ object BEncoder {
       val value: Result[Map[String, BType]] =
         (henc.value.encode(v.head), henc.value) match {
           case (Right(h), _) => Map(name -> h).asRight
-          case (Left(Error.NotFound), _: OptionBEncoder[_]) =>
+          case (Left(BencError.NotFound), _: OptionBEncoder[_]) =>
             Map.empty[String, BType].asRight
           case (Left(err), _) => err.asLeft
         }

@@ -16,6 +16,6 @@
 
 package object benc extends BTypeSyntax {
 
-  type Result[A] = Either[Error, A]
+  type Result[A] = Either[BencError, A]
 
 }

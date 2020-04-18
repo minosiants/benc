@@ -57,7 +57,4 @@ object BType {
     val empty = BMap(ListMap.empty[String, BType])
   }
 
-  def fromBin(bits: BitVector): Result[BType] = FromBin.instance.fromBin(bits)
-  def toBin(bt: BType): Result[BitVector] =
-    ToBin.instance.toBin(bt)
 }
