@@ -16,8 +16,6 @@
 
 package benc
 
-import java.nio.charset.Charset
-import java.time.{ Instant, LocalDate, LocalDateTime, ZoneId }
 
 import benc.BType._
 import cats.instances.either._
@@ -30,7 +28,6 @@ import scodec.codecs._
 import shapeless._
 import shapeless.labelled.{ FieldType, field }
 
-import scala.util.Try
 
 trait BDecoder[A] {
 
