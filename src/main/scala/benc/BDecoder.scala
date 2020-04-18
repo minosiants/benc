@@ -16,7 +16,6 @@
 
 package benc
 
-
 import benc.BType._
 import cats.instances.either._
 import cats.instances.list._
@@ -28,36 +27,74 @@ import scodec.codecs._
 import shapeless._
 import shapeless.labelled.{ FieldType, field }
 
-
+/**
+  * Supports decoding from `BType` to a value of type `A`.
+  *
+  * @tparam A - type to which decoding is done
+  */
 trait BDecoder[A] {
 
+  /**
+    * Attempts to decode from `BType` to a value of type `A`.
+    * @param bt to decode
+    * @return error if can not be decoded or decoded `A`.
+    */
   def decode(bt: BType): Result[A]
 
+  /**
+    * Converts this decoder to a `BDecoder[B]` using the supplied `A => B`.
+    */
   def map[B](f: A => B): BDecoder[B] = BDecoder.instance { bt =>
     decode(bt).map(f)
   }
 
+  /**
+    * Converts this decoder to a `BDecoder[B]` using the supplied `A => BDecoder[B]`.
+    * @group combinators
+    */
   def flatMap[B](f: A => BDecoder[B]): BDecoder[B] =
     BDecoder.instance { bt =>
       decode(bt).flatMap(f(_).decode(bt))
     }
+
+  /**
+    * Converts this decoder to a `BDecoder[B]` using the supplied `A => Result[B]`.
+    */
   def emap[B](f: A => Result[B]): BDecoder[B] = BDecoder.instance(
     bt => decode(bt) flatMap (f(_))
   )
 
 }
 
+/**
+  * Companion for [[BDecoder]].
+  */
 object BDecoder {
+
+  /**
+    * Creates `BDecoder[A]`  using implicit value
+    */
   final def apply[A](implicit F: BDecoder[A]): BDecoder[A] = F
 
+  /**
+    * Constructor.
+    * Creates `BDecoder[A]` using provided f: BType => Result[A].
+    */
   def instance[A](f: BType => Result[A]): BDecoder[A] =
     new BDecoder[A] {
       override def decode(bt: BType): Result[A] = f(bt)
     }
 
+  /**
+    * BDecoder[BitVector]
+    */
   implicit val bitVectorDecoder: BDecoder[BitVector] = instance(
     _.bstring.toRight(BencError.CodecError("Empty"))
   )
+
+  /**
+    * BDecoder[String]
+    */
   implicit val utf8StringDecoder: BDecoder[String] =
     bitVectorDecoder.emap(
       utf8
@@ -66,10 +103,23 @@ object BDecoder {
         .map(_.value)
         .leftMap(err => BencError.CodecError(err.message))
     )
+
+  /**
+    * BDecoder[Long]
+    */
   implicit val longDecoder: BDecoder[Long] = instance(
     _.bnum.toRight(BencError.CodecError("Empty"))
   )
+
+  /**
+    * BDecoder[Int]
+    */
   implicit val intDecoder: BDecoder[Int] = longDecoder.map(_.toInt)
+
+  /**
+    * BDecoder[List[A]]
+    * @tparam A - Decoder for list elements
+    */
   implicit def listDecoder[A: BDecoder]: BDecoder[List[A]] =
     instance(
       _.blist
@@ -77,9 +127,13 @@ object BDecoder {
         .flatMap(_.toRight(BencError.CodecError("Empty")))
     )
 
-  //to handel option case in hlistDecoder
   trait OptionBDecoder[A] extends BDecoder[A]
 
+  /**
+    * BDecoder[Option[A]]
+    *
+    * @tparam A - Decoder for Option element.
+    */
   implicit def optionDecoder[A: BDecoder]: BDecoder[Option[A]] =
     new OptionBDecoder[Option[A]] {
       override def decode(bt: BType): Result[Option[A]] =
@@ -100,10 +154,16 @@ object BDecoder {
       override def decodeBMap(bm: BMap): Result[A] = f(bm)
     }
 
+  /**
+    * BMapDecoder[HNil]
+    */
   implicit val hnilDncoder: BMapDecoder[HNil] = bmapDInstance(
     _ => HNil.asRight
   )
 
+  /**
+    * BMapDecoder[FieldType[K, H] :: T]
+    */
   implicit def hlistDecoder[K <: Symbol, H, T <: HList](
       implicit
       fn: FieldName,

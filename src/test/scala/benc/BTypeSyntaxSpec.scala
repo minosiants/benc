@@ -31,7 +31,7 @@ class BTypeSyntaxSpec extends Specification with ScalaCheck {
       result ==== name.asRight
     }
     "toBenc" in Prop.forAll(nameGen) { name =>
-      val result = BEncoder[Name].encode(name).flatMap(_.toBin)
+      val result = BEncoder[Name].encode(name).flatMap(_.toBenc)
 
       val expected = Benc.toBenc(name)
       result.isRight ==== true

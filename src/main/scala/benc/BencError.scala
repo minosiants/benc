@@ -20,6 +20,9 @@ import cats.Show
 
 import scala.util.control.NoStackTrace
 
+/**
+  * Library error representation
+  */
 sealed abstract class BencError
     extends NoStackTrace
     with Product

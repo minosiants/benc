@@ -22,7 +22,19 @@ trait BTypeSyntax {
   implicit def btypeSyntax(bt: BType): BTypeOps = new BTypeOps(bt)
 }
 
+/**
+  * Some Ops for `BType`
+  * @param bt
+  */
 final class BTypeOps(val bt: BType) extends AnyVal {
-  def toBin: Result[BitVector]   = ToBenc.instance.toBenc(bt)
+
+  /**
+    * Converts this `BType` value to bencoding binary
+    */
+  def toBenc: Result[BitVector] = ToBenc.instance.toBenc(bt)
+
+  /**
+    * Converts this `BType` value to A representation
+    */
   def as[A: BDecoder]: Result[A] = BDecoder[A].decode(bt)
 }

@@ -21,8 +21,14 @@ import scodec.bits.BitVector
 import scala.Function._
 import scala.collection.immutable.ListMap
 
+/**
+  *  A data type representing possible <a href="https://wiki.theory.org/index.php/BitTorrentSpecification#Bencoding">Bencoding</a> values.
+  */
 abstract sealed class BType extends Product with Serializable {
 
+  /**
+    * The catamorphism for the JSON value data type.
+    */
   def fold[A](
       bstring: BitVector => A,
       bnum: Long => A,
@@ -34,14 +40,27 @@ abstract sealed class BType extends Product with Serializable {
     case BType.BList(list)   => blist(list)
     case BType.BMap(map)     => bmap(map)
   }
+
+  /**
+    *  Returns the possible BitVector of this BType value.
+    */
   def bstring: Option[BitVector] =
     fold(Some(_), const(None), const(None), const(None))
 
+  /**
+    *  Returns the possible Long of this BType value.
+    */
   def bnum: Option[Long] = fold(const(None), Some(_), const(None), const(None))
 
+  /**
+    *  Returns the possible List of BType of this BType value.
+    */
   def blist: Option[List[BType]] =
     fold(const(None), const(None), Some(_), const(None))
 
+  /**
+    *  Returns the possible Map of this BType value.
+    */
   def bmap: Option[Map[String, BType]] =
     fold(const(None), const(None), const(None), Some(_))
 
