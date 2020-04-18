@@ -1,5 +1,3 @@
-scalaVersion := "2.13.1"
-
 val catsVersion       = "2.1.0"
 val shaplessVersion   = "2.3.3"
 val specs2Version     = "4.8.3"
@@ -11,7 +9,14 @@ lazy val root = (project in file("."))
   .settings(
     organization := "com.minosiatns",
     name := "benc",
-    scalaVersion := "2.13.1",
+    scalaVersion := "2.12.11",
+    crossScalaVersions := Seq("2.12.11", "2.13.1"),
+    scalacOptions ++= Seq(
+      "-language:experimental.macros",
+      "-Yrangepos",
+      "-Ywarn-unused",
+      "-Xlint"
+    ),
     libraryDependencies ++= Seq(
       "org.typelevel"  %% "cats-core"         % catsVersion,
       "com.chuusai"    %% "shapeless"         % shaplessVersion,
@@ -21,10 +26,10 @@ lazy val root = (project in file("."))
       "org.specs2"     %% "specs2-core"       % specs2Version % Test,
       "org.specs2"     %% "specs2-scalacheck" % specs2Version % Test
     ),
-    addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
+    addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3"),
+    addCompilerPlugin(scalafixSemanticdb)
   )
   .settings(licenceSettings)
-  .settings(githubPackagesSettings)
   .settings(releaseProcessSettings)
 
 lazy val licenceSettings = Seq(
@@ -35,10 +40,7 @@ lazy val licenceSettings = Seq(
   ))
 )
 
-lazy val githubPackagesSettings = Seq(
-  githubOwner := "minosiants",
-  githubRepository := "benc"
-)
+publishTo := sonatypePublishToBundle.value
 
 import ReleaseTransformations._
 lazy val releaseProcessSettings = Seq(
