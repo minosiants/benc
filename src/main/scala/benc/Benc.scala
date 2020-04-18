@@ -29,19 +29,28 @@ import scala.Function._
 import scala.collection.immutable.ListMap
 import scala.util.Try
 
-trait FromBin {
-  def fromBin(bits: BitVector): Result[BType]
+object Benc {
+  def fromBenc[A: BDecoder](bits: BitVector): Result[A] =
+    FromBenc.instance.fromBenc(bits).flatMap(_.as[A])
+
+  def toBenc[A: BEncoder](a: A): Result[BitVector] =
+    BEncoder[A].encode(a).flatMap(ToBenc.instance.toBenc)
+
 }
 
-object FromBin {
+trait FromBenc {
+  def fromBenc(bits: BitVector): Result[BType]
+}
 
-  lazy val instance: FromBin = FromBin()
+object FromBenc {
 
-  def apply(): FromBin = new FromBin() {
-    override def fromBin(bits: BitVector): Result[BType] =
+  lazy val instance: FromBenc = FromBenc()
+
+  def apply(): FromBenc = new FromBenc() {
+    override def fromBenc(bits: BitVector): Result[BType] =
       decode(bits).toEither
         .map(_.value)
-        .leftMap(err => Error.CodecError(err.message))
+        .leftMap(err => BencError.CodecError(err.message))
 
     def decode(bits: BitVector): Attempt[DecodeResult[BType]] = {
       if (bits.isEmpty) {
@@ -152,17 +161,17 @@ object FromBin {
 
 }
 
-trait ToBin {
-  def toBin(bt: BType): Result[BitVector]
+trait ToBenc {
+  def toBenc(bt: BType): Result[BitVector]
 }
 
-object ToBin {
-  val instance = ToBin()
+object ToBenc {
+  val instance = ToBenc()
 
-  def apply(): ToBin = new ToBin() {
-    override def toBin(bt: BType): Result[BitVector] =
+  def apply(): ToBenc = new ToBenc() {
+    override def toBenc(bt: BType): Result[BitVector] =
       encodeBType(bt).toEither
-        .leftMap(err => Error.CodecError(err.message))
+        .leftMap(err => BencError.CodecError(err.message))
 
     val e: BitVector = BitVector("e".getBytes())
     val l: BitVector = BitVector("l".getBytes())

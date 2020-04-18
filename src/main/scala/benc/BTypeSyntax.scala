@@ -23,6 +23,6 @@ trait BTypeSyntax {
 }
 
 final class BTypeOps(val bt: BType) extends AnyVal {
-  def toBin: Result[BitVector]   = BType.toBin(bt)
+  def toBin: Result[BitVector]   = ToBenc.instance.toBenc(bt)
   def as[A: BDecoder]: Result[A] = BDecoder[A].decode(bt)
 }

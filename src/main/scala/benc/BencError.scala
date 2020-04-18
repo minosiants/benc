@@ -20,13 +20,16 @@ import cats.Show
 
 import scala.util.control.NoStackTrace
 
-sealed abstract class Error extends NoStackTrace with Product with Serializable
+sealed abstract class BencError
+    extends NoStackTrace
+    with Product
+    with Serializable
 
-object Error {
-  final case object NotFound               extends Error
-  final case class CodecError(msg: String) extends Error
+object BencError {
+  final case object NotFound               extends BencError
+  final case class CodecError(msg: String) extends BencError
 
-  implicit val showError: Show[Error] = Show.show {
+  implicit val showError: Show[BencError] = Show.show {
     case NotFound        => "Not found"
     case CodecError(msg) => s"Codec error: $msg"
   }
