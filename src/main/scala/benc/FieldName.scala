@@ -1,5 +1,8 @@
 package benc
 
+/**
+  * Strategy for field name during encoding/decoding
+  */
 trait FieldName {
   def name[K <: Symbol](k: K): String
 }

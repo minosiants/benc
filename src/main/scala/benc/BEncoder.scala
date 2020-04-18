@@ -26,20 +26,46 @@ import scodec.bits.BitVector
 import shapeless._
 import shapeless.labelled.FieldType
 
+/**
+  * Supports encoding a value of type `A` to BType.
+  * @tparam A - Tyoe to be encoded
+  */
 trait BEncoder[A] { self =>
 
+  /**
+    * Attempts to encode a value of type `A`  to `BType`
+    * @param a - to encode
+    * @return Error if can not to encode or encoded result `BType`
+    */
   def encode(a: A): Result[BType]
 
+  /**
+    * Converts this encoder to an `BEncoder[B]` using the supplied `B => A`.
+    */
   def contramap[B](f: B => A): BEncoder[B] =
     BEncoder.instance(v => encode(f(v)))
 
+  /**
+    * Converts this encoder to an `BEncoder[B]` using the supplied `B => Result[A]`.
+    */
   def econtramap[B](f: B => Result[A]): BEncoder[B] =
     BEncoder.instance(v => f(v).flatMap(encode))
 }
 
+/**
+  * Companion for [[BEncoder]]
+  */
 object BEncoder {
+
+  /**
+    * Creates `BEncoder[A]`  using implicit value
+    */
   def apply[A](implicit F: BEncoder[A]): BEncoder[A] = F
 
+  /**
+    * Constructor.
+    * Creates `BEncoder[A]` using provided f: BType => Result[BType].
+    */
   def instance[A](f: A => Result[BType]): BEncoder[A] = new BEncoder[A] {
     override def encode(a: A): Result[BType] = f(a)
   }
@@ -53,9 +79,16 @@ object BEncoder {
       override def encode(a: A): Result[BMap] = f(a)
     }
 
+  /**
+    * BEncoder[BitVector]
+    */
   implicit val bitVectorBEncoder: BEncoder[BitVector] = instance(
     bits => BString(bits).asRight
   )
+
+  /**
+    * BEncoder[String]
+    */
   implicit val stringBEncoder: BEncoder[String] = bitVectorBEncoder.econtramap(
     str =>
       utf8
@@ -63,14 +96,31 @@ object BEncoder {
         .toEither
         .leftMap(err => BencError.CodecError(err.message))
   )
+
+  /**
+    * BEncoder[Long]
+    */
   implicit val longBEncoder: BEncoder[Long] = instance(num => BNum(num).asRight)
-  implicit val intBEncoder: BEncoder[Int]   = longBEncoder.contramap(_.toLong)
+
+  /**
+    * BEncoder[Int]
+    */
+  implicit val intBEncoder: BEncoder[Int] = longBEncoder.contramap(_.toLong)
+
+  /**
+    * BEncoder[List[A]]
+    * @tparam A - encoder for list elements
+    */
   implicit def listBEncoder[A: BEncoder]: BEncoder[List[A]] =
     instance(_.traverse(v => BEncoder[A].encode(v)).map(BList))
 
   //To handle option case in hlistEncoder
   trait OptionBEncoder[A] extends BEncoder[A]
 
+  /**
+    *  BEncoder[Option[A]]
+    * @tparam A encoder for option element
+    */
   implicit def optionBencoder[A: BEncoder]: BEncoder[Option[A]] =
     new OptionBEncoder[Option[A]] {
       override def encode(a: Option[A]): Result[BType] = a match {
@@ -79,6 +129,9 @@ object BEncoder {
       }
     }
 
+  /**
+    * BMapEncoder[HNil]
+    */
   implicit val hnilEncoder: BMapEncoder[HNil] = bmapInstance(
     _ => BMap.empty.asRight
   )

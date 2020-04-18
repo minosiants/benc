@@ -29,10 +29,24 @@ import scala.Function._
 import scala.collection.immutable.ListMap
 import scala.util.Try
 
+/**
+  * Converts from/to binary bencoded value to type `A`
+  */
 object Benc {
+
+  /**
+    * Attempt to convert from binary bencoded value to `A`
+    * @param bits - bencoded binary value
+    * @return Error if can not to convert or converted value
+    */
   def fromBenc[A: BDecoder](bits: BitVector): Result[A] =
     FromBenc.instance.fromBenc(bits).flatMap(_.as[A])
 
+  /**
+    * * Attempt to convert from `A`  to binary bencoded value
+    * @param a - object to convert
+    * @return Error if can not to convert or converted value
+    */
   def toBenc[A: BEncoder](a: A): Result[BitVector] =
     BEncoder[A].encode(a).flatMap(ToBenc.instance.toBenc)
 
