@@ -43,8 +43,12 @@ lazy val licenceSettings = Seq(
 publishTo := sonatypePublishToBundle.value
 
 import ReleaseTransformations._
+
+
+
 lazy val releaseProcessSettings = Seq(
   releaseIgnoreUntrackedFiles := true,
+  releaseCrossBuild := true,
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
