@@ -7,7 +7,7 @@ val scalacheckVersion = "1.14.1"
 
 lazy val root = (project in file("."))
   .settings(
-    organization := "com.minosiatns",
+    organization := "com.minosiants",
     name := "benc",
     scalaVersion := "2.12.11",
     crossScalaVersions := Seq("2.12.11", "2.13.1"),
