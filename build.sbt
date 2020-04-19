@@ -41,7 +41,7 @@ lazy val licenceSettings = Seq(
 )
 
 publishTo := sonatypePublishToBundle.value
-
+useGpg := false
 import ReleaseTransformations._
 lazy val releaseProcessSettings = Seq(
   releaseIgnoreUntrackedFiles := true,
