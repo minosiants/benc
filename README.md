@@ -17,9 +17,7 @@ Bencoding library for scala
 ### Usage
 
 ```scala
-resolvers += "Github packages minosiants" at "https://maven.pkg.github.com/minosiants/_"
-
-libraryDependencies += "com.minosiatns" %% "benc" % "0.2.0"
+libraryDependencies += "com.minosiatns" %% "benc" % "0.3.1"
 ```
 
 
@@ -30,6 +28,12 @@ libraryDependencies += "com.minosiatns" %% "benc" % "0.2.0"
   final case class Author(name: String, age: Option[Int])
   final case class Book(id: Id, author: Author, content: BitVector, pages: Long)
   val book = Book(...)
+  //there are several ways to do conversion
+   
+  val bits:Either[Error, BitVector] = Benc.toBenc[Book](book)
+  val backToBook:Either[Error, Book] = bits.flatMap(b => Benc.fromBenc[Book](b))
+
+  //Or using codecs directly
   BEncoder[Book].encode(book).flatMap(bt => BDecoder[Book].decode(bt))  
 ```
 
