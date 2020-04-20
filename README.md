@@ -33,7 +33,11 @@ libraryDependencies += "com.minosiatns" %% "benc" % "0.3.1"
   val bits:Either[Error, BitVector] = Benc.toBenc[Book](book)
   val backToBook:Either[Error, Book] = bits.flatMap(b => Benc.fromBenc[Book](b))
 
-  //Or using codecs directly
+  //Using decoder adn encode directly
   BEncoder[Book].encode(book).flatMap(bt => BDecoder[Book].decode(bt))  
+
+  //Using codec
+  val codec = BCodec[Book]  
+  codec.encode(book).flatMap(bt => codec.decode(bt))
 ```
 

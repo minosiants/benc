@@ -1,3 +1,19 @@
+/*
+ * Copyright 2020 Kaspar Minosiants
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package benc
 
 import benc.BDecoder.{ BMapDecoder, OptionBDecoder }
@@ -27,8 +43,8 @@ trait BCodec[A] extends BEncoder[A] with BDecoder[A] {
 }
 
 object BCodec {
-  //def apply[A](implicit E: BEncoder[A], D: BDecoder[A]): BCodec[A] = instance(E,D)
-  def apply[A](implicit E: BCodec[A]): BCodec[A] = E
+
+  def apply[A](implicit F: BCodec[A]): BCodec[A] = F
 
   def instance[A](enc: A => Result[BType], dec: BType => Result[A]): BCodec[A] =
     new BCodec[A] {
