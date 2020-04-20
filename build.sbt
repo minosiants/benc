@@ -27,20 +27,20 @@ lazy val root = (project in file("."))
       "org.specs2"     %% "specs2-scalacheck" % specs2Version % Test
     ),
     addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3"),
-    addCompilerPlugin(scalafixSemanticdb)
+    addCompilerPlugin(scalafixSemanticdb),
+    publishTo := sonatypePublishToBundle.value
   )
   .settings(licenceSettings)
   .settings(releaseProcessSettings)
 
+
 lazy val licenceSettings = Seq(
   organizationName := "Kaspar Minosiants",
   startYear := Some(2020),
-  licenses += ("Apache-2.0", new URL(
-    "https://www.apache.org/licenses/LICENSE-2.0.txt"
-  ))
+  licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0")),
 )
 
-publishTo := sonatypePublishToBundle.value
+
 
 import ReleaseTransformations._
 
