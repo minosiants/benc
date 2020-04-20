@@ -17,11 +17,11 @@
 package benc
 
 import benc.BType.{ BMap, BString }
+import cats.syntax.either._
+import org.scalacheck._
 import org.specs2.ScalaCheck
 import org.specs2.mutable.Specification
 import scodec.bits.BitVector
-import org.scalacheck._
-import cats.syntax.either._
 
 class CodecSpec extends Specification with ScalaCheck {
   import CodecSpec._
@@ -33,6 +33,15 @@ class CodecSpec extends Specification with ScalaCheck {
 
       result ==== book.asRight
     }
+
+    "be encoded by codec" in Prop.forAll(bookGen) { book =>
+      case class Id(id: Option[Int])
+      val codec = BCodec[Book]
+      val result =
+        codec.encode(book).flatMap(bt => codec.decode(bt))
+      result ==== book.asRight
+    }
+
     "custom fieldName in encoder" in Prop.forAll(idGen) { id =>
       implicit object upperCaseFiledName extends FieldName {
         override def name[K <: Symbol](k: K): String = k.name.toUpperCase

@@ -121,7 +121,7 @@ object BEncoder {
     *  BEncoder[Option[A]]
     * @tparam A encoder for option element
     */
-  implicit def optionBencoder[A: BEncoder]: BEncoder[Option[A]] =
+  implicit def optionBEncoder[A: BEncoder]: BEncoder[Option[A]] =
     new OptionBEncoder[Option[A]] {
       override def encode(a: Option[A]): Result[BType] = a match {
         case Some(value) => BEncoder[A].encode(value)
