@@ -134,7 +134,7 @@ object BDecoder {
     *
     * @tparam A - Decoder for Option element.
     */
-  implicit def optionDecoder[A: BDecoder]: BDecoder[Option[A]] =
+  implicit def optionDEcoder[A: BDecoder]: BDecoder[Option[A]] =
     new OptionBDecoder[Option[A]] {
       override def decode(bt: BType): Result[Option[A]] =
         BDecoder[A].decode(bt).map(Some(_))
