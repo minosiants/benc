@@ -60,27 +60,27 @@ object BCodec {
 
   implicit val bitVectorBCodec: BCodec[BitVector] = instance(
     BEncoder.bitVectorBEncoder,
-    BDecoder.bitVectorDecoder
+    BDecoder.bitVectorBDecoder
   )
 
   implicit val stringBCodec: BCodec[String] = instance(
     BEncoder.stringBEncoder,
-    BDecoder.utf8StringDecoder
+    BDecoder.utf8StringBDecoder
   )
 
   implicit val longBCodec: BCodec[Long] = instance(
     BEncoder.longBEncoder,
-    BDecoder.longDecoder
+    BDecoder.longBDecoder
   )
 
   implicit val intBCodec: BCodec[Int] = instance(
     BEncoder.intBEncoder,
-    BDecoder.intDecoder
+    BDecoder.intBDecoder
   )
 
   implicit def listBCodec[A: BEncoder: BDecoder]: BCodec[List[A]] = instance(
     BEncoder.listBEncoder[A],
-    BDecoder.listDecoder[A]
+    BDecoder.listBDecoder[A]
   )
 
   trait OptionBCodec[A]
@@ -113,7 +113,7 @@ object BCodec {
 
   implicit val hnilCodec: BMapCodec[HNil] = bmapCodecinstance(
     BEncoder.hnilEncoder,
-    BDecoder.hnilDncoder
+    BDecoder.hnilBDncoder
   )
 
   implicit def hlistBCodec[K <: Symbol, H, T <: HList](
@@ -125,7 +125,7 @@ object BCodec {
   ): BMapCodec[FieldType[K, H] :: T] =
     bmapCodecinstance(
       BEncoder.hlistEncoder[K, H, T],
-      BDecoder.hlistDecoder[K, H, T]
+      BDecoder.hlistBDecoder[K, H, T]
     )
 
   implicit def genericBCodec[A, H](
@@ -134,6 +134,6 @@ object BCodec {
       hencoder: Lazy[BMapCodec[H]]
   ): BCodec[A] = instance(
     BEncoder.genericEncoder[A, H],
-    BDecoder.genericDecoder[A, H]
+    BDecoder.genericBDecoder[A, H]
   )
 }

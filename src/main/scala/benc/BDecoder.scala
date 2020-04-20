@@ -88,15 +88,15 @@ object BDecoder {
   /**
     * BDecoder[BitVector]
     */
-  implicit val bitVectorDecoder: BDecoder[BitVector] = instance(
+  implicit val bitVectorBDecoder: BDecoder[BitVector] = instance(
     _.bstring.toRight(BencError.CodecError("Empty"))
   )
 
   /**
     * BDecoder[String]
     */
-  implicit val utf8StringDecoder: BDecoder[String] =
-    bitVectorDecoder.emap(
+  implicit val utf8StringBDecoder: BDecoder[String] =
+    bitVectorBDecoder.emap(
       utf8
         .decode(_)
         .toEither
@@ -107,20 +107,20 @@ object BDecoder {
   /**
     * BDecoder[Long]
     */
-  implicit val longDecoder: BDecoder[Long] = instance(
+  implicit val longBDecoder: BDecoder[Long] = instance(
     _.bnum.toRight(BencError.CodecError("Empty"))
   )
 
   /**
     * BDecoder[Int]
     */
-  implicit val intDecoder: BDecoder[Int] = longDecoder.map(_.toInt)
+  implicit val intBDecoder: BDecoder[Int] = longBDecoder.map(_.toInt)
 
   /**
     * BDecoder[List[A]]
     * @tparam A - Decoder for list elements
     */
-  implicit def listDecoder[A: BDecoder]: BDecoder[List[A]] =
+  implicit def listBDecoder[A: BDecoder]: BDecoder[List[A]] =
     instance(
       _.blist
         .traverse(_.traverse(v => BDecoder[A].decode(v)))
@@ -157,14 +157,14 @@ object BDecoder {
   /**
     * BMapDecoder[HNil]
     */
-  implicit val hnilDncoder: BMapDecoder[HNil] = bmapDInstance(
+  implicit val hnilBDncoder: BMapDecoder[HNil] = bmapDInstance(
     _ => HNil.asRight
   )
 
   /**
     * BMapDecoder[FieldType[K, H] :: T]
     */
-  implicit def hlistDecoder[K <: Symbol, H, T <: HList](
+  implicit def hlistBDecoder[K <: Symbol, H, T <: HList](
       implicit
       fn: FieldName,
       witness: Witness.Aux[K],
@@ -188,7 +188,7 @@ object BDecoder {
     }
   }
 
-  implicit def genericDecoder[A, H](
+  implicit def genericBDecoder[A, H](
       implicit
       gen: LabelledGeneric.Aux[A, H],
       hencoder: Lazy[BMapDecoder[H]]
