@@ -17,7 +17,7 @@ Bencoding library for scala
 ### Usage
 
 ```scala
-libraryDependencies += "com.minosiatns" %% "benc" % "0.3.1"
+libraryDependencies += "com.minosiatns" %% "benc" % "0.4.0"
 ```
 
 
