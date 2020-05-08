@@ -85,6 +85,25 @@ object BDecoder {
       override def decode(bt: BType): Result[A] = f(bt)
     }
 
+  def at[A: BDecoder](key: String): BDecoder[A] = instance {
+    case BMap(m) =>
+      m.get(key) match {
+        case Some(value) => BDecoder[A].decode(value)
+        case None        => BencError.CodecError(s"key $key not found").asLeft
+      }
+    case _ => BencError.CodecError(s"$key not found. It is not bmap").asLeft
+  }
+
+  def at[A: BDecoder](index: Int): BDecoder[A] = instance {
+    case BList(list) =>
+      if (index < list.size)
+        BDecoder[A].decode(list(index))
+      else
+        BencError.CodecError(s"Invalid index $index in $list").asLeft
+    case v =>
+      BencError.CodecError(s"It is not blist. $v").asLeft
+  }
+
   /**
     * BDecoder[BitVector]
     */
