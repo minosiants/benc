@@ -16,6 +16,7 @@
 
 package benc
 
+import benc.BDecoder.{ BMapDecoder, OptionBDecoder, bmapDInstance }
 import benc.BType._
 import cats.instances.either._
 import cats.instances.list._
@@ -26,6 +27,8 @@ import scodec.bits.BitVector
 import scodec.codecs._
 import shapeless._
 import shapeless.labelled.{ FieldType, field }
+import shapeless.ops.hlist.{ RightFolder, ToTraversable, Zip }
+import shapeless.ops.record.Keys
 
 /**
   * Supports decoding from `BType` to a value of type `A`.
@@ -163,9 +166,8 @@ object BDecoder {
     def decodeBMap(bm: BMap): Result[A]
 
     def decode(bt: BType): Result[A] = {
-      bt.bmap
-        .traverse(v => decodeBMap(BMap(v)))
-        .flatMap(_.toRight(BencError.CodecError("Empty")))
+      bt.rbmap
+        .flatMap(v => decodeBMap(BMap(v)))
     }
   }
   def bmapDInstance[A](f: BMap => Result[A]): BMapDecoder[A] =
@@ -173,46 +175,72 @@ object BDecoder {
       override def decodeBMap(bm: BMap): Result[A] = f(bm)
     }
 
-  /**
-    * BMapDecoder[HNil]
-    */
-  implicit val hnilBDncoder: BMapDecoder[HNil] = bmapDInstance(
-    _ => HNil.asRight
-  )
-
-  /**
-    * BMapDecoder[FieldType[K, H] :: T]
-    */
-  implicit def hlistBDecoder[K <: Symbol, H, T <: HList](
-      implicit
-      fn: FieldName,
-      witness: Witness.Aux[K],
-      henc: Lazy[BDecoder[H]],
-      tenc: BMapDecoder[T]
-  ): BMapDecoder[FieldType[K, H] :: T] = {
-    val name = fn.name(witness.value)
-    bmapDInstance { bmap =>
-      val value: Result[H] = (bmap.m.get(name), henc.value) match {
-        case (None, _: OptionBDecoder[_]) =>
-          None.asInstanceOf[H].asRight[BencError]
-        case (None, _) =>
-          BencError.CodecError(s"filed $name is missing").asLeft[H]
-        case (Some(bt), dec) =>
-          dec.decode(bt)
-      }
-      for {
-        head <- value
-        tail <- tenc.decodeBMap(bmap)
-      } yield field[K](head) :: tail
+  trait HListBDecoder[L <: HList] {
+    def decode(ann: Map[String, String]): BMapDecoder[L]
+  }
+  object HListBDecoder {
+    def instance[L <: HList](
+        f: Map[String, String] => BMapDecoder[L]
+    ): HListBDecoder[L] = new HListBDecoder[L] {
+      override def decode(ann: Map[String, String]): BMapDecoder[L] = f(ann)
     }
   }
-
-  implicit def genericBDecoder[A, H](
+  implicit val hnilBDncoder: HListBDecoder[HNil] = HListBDecoder.instance { _ =>
+    bmapDInstance(
+      _ => HNil.asRight
+    )
+  }
+  implicit def hlistBDecoder[K <: Symbol, H, T <: HList](
       implicit
-      gen: LabelledGeneric.Aux[A, H],
-      hencoder: Lazy[BMapDecoder[H]]
-  ): BDecoder[A] =
-    bmapDInstance { v =>
-      hencoder.value.decodeBMap(v).map(gen.from)
+      fieldName: FieldName,
+      witness: Witness.Aux[K],
+      henc: Lazy[BDecoder[H]],
+      tenc: HListBDecoder[T]
+  ): HListBDecoder[FieldType[K, H] :: T] = {
+    HListBDecoder.instance { ann =>
+      val name =
+        ann.getOrElse(witness.value.name, fieldName.name(witness.value))
+      bmapDInstance { bmap =>
+        val value: Result[H] = (bmap.m.get(name), henc.value) match {
+          case (None, _: OptionBDecoder[_]) =>
+            None.asInstanceOf[H].asRight[BencError]
+          case (None, _) =>
+            BencError.CodecError(s"filed $name is missing").asLeft[H]
+          case (Some(bt), dec) =>
+            dec.decode(bt)
+        }
+        for {
+          head <- value
+          tail <- tenc.decode(ann).decodeBMap(bmap)
+        } yield field[K](head) :: tail
+      }
     }
+  }
+  implicit def genericBDecoder[
+      A,
+      R <: HList,
+      D <: HList,
+      F <: HList,
+      K <: HList
+  ](
+      implicit
+      gen: LabelledGeneric.Aux[A, R],
+      underlying: Lazy[HListBDecoder[R]],
+      fields: Keys.Aux[R, F],
+      fieldsToList: ToTraversable.Aux[F, List, Symbol],
+      keys: Annotations.Aux[BencKey, A, K],
+      keysToList: ToTraversable.Aux[K, List, Option[BencKey]]
+  ): BMapDecoder[A] = {
+    bmapDInstance { v =>
+      val keyAnnotationMap: Map[String, String] =
+        fieldsToList(fields())
+          .map(_.name)
+          .zip(keysToList(keys()))
+          .collect {
+            case (field, Some(keyAnnotation)) => (field, keyAnnotation.value)
+          }
+          .toMap
+      underlying.value.decode(keyAnnotationMap).decode(v).map(gen.from)
+    }
+  }
 }

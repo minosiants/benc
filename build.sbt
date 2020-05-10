@@ -28,6 +28,7 @@ lazy val root = (project in file("."))
     ),
     addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3"),
     addCompilerPlugin(scalafixSemanticdb),
+    addCompilerPlugin("io.tryp" % "splain" % "0.5.5" cross CrossVersion.patch),
     publishTo := sonatypePublishToBundle.value
   )
   .settings(licenceSettings)
