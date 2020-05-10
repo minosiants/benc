@@ -178,7 +178,7 @@ object BEncoder {
             case (Left(err), _) => err.asLeft
           }
         for {
-          head <- if (ignored) Map.empty.asRight else value
+          head <- if (ignored) Map.empty[String, BType].asRight else value
           tail <- tenc.encode(keys, ignors).encode(v.tail)
         } yield BMap(head ++ tail.m)
       }
