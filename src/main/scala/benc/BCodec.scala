@@ -16,13 +16,12 @@
 
 package benc
 
-import benc.BDecoder.{ BMapDecoder, HListBDecoder, OptionBDecoder }
-import benc.BEncoder.{ BMapEncoder, HListBEncoder, OptionBEncoder }
-import benc.BType.BMap
+import benc.BDecoder.{BMapDecoder, HListBDecoder, OptionBDecoder}
+import benc.BEncoder.{BMapEncoder, HListBEncoder, OptionBEncoder}
+import cats.syntax.either._
 import scodec.bits.BitVector
 import shapeless._
 import shapeless.labelled.FieldType
-import cats.syntax.either._
 import shapeless.ops.hlist.ToTraversable
 import shapeless.ops.record.Keys
 

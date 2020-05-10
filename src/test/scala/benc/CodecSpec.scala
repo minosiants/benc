@@ -22,7 +22,6 @@ import org.scalacheck._
 import org.specs2.ScalaCheck
 import org.specs2.mutable.Specification
 import scodec.bits.BitVector
-import shapeless._
 
 class CodecSpec extends Specification with ScalaCheck {
   import CodecSpec._
