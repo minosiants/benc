@@ -76,7 +76,7 @@ object BType {
   final case class BMap(m: Map[String, BType]) extends BType
 
   object BMap {
-    val empty = BMap(ListMap.empty[String, BType])
+    val empty: BMap = BMap(ListMap.empty[String, BType])
   }
 
 }

@@ -180,7 +180,7 @@ trait ToBenc {
 }
 
 object ToBenc {
-  val instance = ToBenc()
+  val instance: ToBenc = ToBenc()
 
   def apply(): ToBenc = new ToBenc() {
     override def toBenc(bt: BType): Result[BitVector] =

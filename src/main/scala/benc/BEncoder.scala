@@ -17,8 +17,6 @@
 package benc
 
 import BType._
-import benc.BDecoder.BMapDecoder
-import benc.BEncoder.{ BMapEncoder, OptionBEncoder, bmapInstance }
 import cats.syntax.traverse._
 import cats.instances.list._
 import cats.instances.either._
@@ -27,7 +25,7 @@ import scodec.codecs._
 import scodec.bits.BitVector
 import shapeless._
 import shapeless.labelled.FieldType
-import shapeless.ops.hlist.{ ToTraversable, Zip }
+import shapeless.ops.hlist.ToTraversable
 import shapeless.ops.record.Keys
 
 /**
