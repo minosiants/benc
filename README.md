@@ -17,7 +17,7 @@ Bencoding library for scala
 ### Usage
 
 ```scala
-libraryDependencies += "com.minosiatns" %% "benc" % "0.4.0"
+libraryDependencies += "com.minosiatns" %% "benc" % "0.5.0"
 ```
 
 
@@ -39,5 +39,9 @@ libraryDependencies += "com.minosiatns" %% "benc" % "0.4.0"
   //Using codec
   val codec = BCodec[Book]  
   codec.encode(book).flatMap(bt => codec.decode(bt))
+
+  //Setting different name
+  case class Pen(@BencKey("name") brand:String)
+  
 ```
 
