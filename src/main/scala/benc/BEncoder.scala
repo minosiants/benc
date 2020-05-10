@@ -16,13 +16,13 @@
 
 package benc
 
-import BType._
-import cats.syntax.traverse._
-import cats.instances.list._
+import benc.BType._
 import cats.instances.either._
+import cats.instances.list._
 import cats.syntax.either._
-import scodec.codecs._
+import cats.syntax.traverse._
 import scodec.bits.BitVector
+import scodec.codecs._
 import shapeless._
 import shapeless.labelled.FieldType
 import shapeless.ops.hlist.ToTraversable
@@ -132,22 +132,29 @@ object BEncoder {
     }
 
   trait HListBEncoder[L <: HList] {
-    def encode(ann: Map[String, String]): BMapEncoder[L]
+    def encode(
+        keys: Map[String, String],
+        ignors: Map[String, Boolean]
+    ): BMapEncoder[L]
   }
   object HListBEncoder {
 
     def instance[L <: HList](
-        f: Map[String, String] => BMapEncoder[L]
+        f: (Map[String, String], Map[String, Boolean]) => BMapEncoder[L]
     ): HListBEncoder[L] = new HListBEncoder[L] {
-      override def encode(ann: Map[String, String]): BMapEncoder[L] = f(ann)
+      override def encode(
+          keys: Map[String, String],
+          ignors: Map[String, Boolean]
+      ): BMapEncoder[L] = f(keys, ignors)
     }
 
   }
 
-  implicit val hnilEncoder: HListBEncoder[HNil] = HListBEncoder.instance { _ =>
-    bmapInstance(
-      _ => BMap.empty.asRight
-    )
+  implicit val hnilEncoder: HListBEncoder[HNil] = HListBEncoder.instance {
+    (_, _) =>
+      bmapInstance(
+        _ => BMap.empty.asRight
+      )
   }
 
   implicit def hlistEncoder[K <: Symbol, H, T <: HList](
@@ -157,11 +164,13 @@ object BEncoder {
       henc: Lazy[BEncoder[H]],
       tenc: HListBEncoder[T]
   ): HListBEncoder[FieldType[K, H] :: T] = {
-    HListBEncoder.instance { ann =>
+    HListBEncoder.instance { (keys, ignors) =>
       val name =
-        ann.getOrElse(witness.value.name, fieldName.name(witness.value))
+        keys.getOrElse(witness.value.name, fieldName.name(witness.value))
+
+      val ignored = ignors.getOrElse(witness.value.name, false)
       bmapInstance { v =>
-        val value: Result[Map[String, BType]] =
+        lazy val value: Result[Map[String, BType]] =
           (henc.value.encode(v.head), henc.value) match {
             case (Right(h), _) => Map(name -> h).asRight
             case (Left(BencError.NotFound), _: OptionBEncoder[_]) =>
@@ -169,8 +178,8 @@ object BEncoder {
             case (Left(err), _) => err.asLeft
           }
         for {
-          head <- value
-          tail <- tenc.encode(ann).encode(v.tail)
+          head <- if (ignored) Map.empty.asRight else value
+          tail <- tenc.encode(keys, ignors).encode(v.tail)
         } yield BMap(head ++ tail.m)
       }
     }
@@ -181,7 +190,8 @@ object BEncoder {
       R <: HList,
       D <: HList,
       F <: HList,
-      K <: HList
+      K <: HList,
+      T <: HList
   ](
       implicit
       gen: LabelledGeneric.Aux[A, R],
@@ -189,7 +199,9 @@ object BEncoder {
       fields: Keys.Aux[R, F],
       fieldsToList: ToTraversable.Aux[F, List, Symbol],
       keys: Annotations.Aux[BencKey, A, K],
-      keysToList: ToTraversable.Aux[K, List, Option[BencKey]]
+      keysToList: ToTraversable.Aux[K, List, Option[BencKey]],
+      ignors: Annotations.Aux[BencIgnore, A, T],
+      ignorsToList: ToTraversable.Aux[T, List, Option[BencIgnore]]
   ): BMapEncoder[A] = {
     bmapInstance { v =>
       val keyAnnotationMap: Map[String, String] =
@@ -200,8 +212,18 @@ object BEncoder {
             case (field, Some(keyAnnotation)) => (field, keyAnnotation.value)
           }
           .toMap
+      val ignorsAnnotationMap: Map[String, Boolean] =
+        fieldsToList(fields())
+          .map(_.name)
+          .zip(ignorsToList(ignors()))
+          .collect {
+            case (field, Some(_)) => (field, true)
+          }
+          .toMap
 
-      underlying.value.encode(keyAnnotationMap).encode(gen.to(v))
+      underlying.value
+        .encode(keyAnnotationMap, ignorsAnnotationMap)
+        .encode(gen.to(v))
     }
   }
 

@@ -16,8 +16,8 @@
 
 package benc
 
-import benc.BDecoder.{BMapDecoder, HListBDecoder, OptionBDecoder}
-import benc.BEncoder.{BMapEncoder, HListBEncoder, OptionBEncoder}
+import benc.BDecoder.{ BMapDecoder, HListBDecoder, OptionBDecoder }
+import benc.BEncoder.{ BMapEncoder, HListBEncoder, OptionBEncoder }
 import cats.syntax.either._
 import scodec.bits.BitVector
 import shapeless._
@@ -110,8 +110,11 @@ object BCodec {
       override def decode(ann: Map[String, String]): BMapDecoder[L] =
         dec.decode(ann)
 
-      override def encode(ann: Map[String, String]): BMapEncoder[L] =
-        enc.encode(ann)
+      override def encode(
+          keys: Map[String, String],
+          ignors: Map[String, Boolean]
+      ): BMapEncoder[L] =
+        enc.encode(keys, ignors)
     }
   }
   implicit val hnilCodec: HListBCodec[HNil] = HListBCodec.instance(
@@ -131,7 +134,14 @@ object BCodec {
       BDecoder.hlistBDecoder[K, H, T]
     )
 
-  implicit def genericBCodec[A, R <: HList, D <: HList, F <: HList, K <: HList](
+  implicit def genericBCodec[
+      A,
+      R <: HList,
+      D <: HList,
+      F <: HList,
+      K <: HList,
+      T <: HList
+  ](
       implicit
       gen: LabelledGeneric.Aux[A, R],
       underlyingE: Lazy[HListBDecoder[R]],
@@ -139,9 +149,11 @@ object BCodec {
       fields: Keys.Aux[R, F],
       fieldsToList: ToTraversable.Aux[F, List, Symbol],
       keys: Annotations.Aux[BencKey, A, K],
-      keysToList: ToTraversable.Aux[K, List, Option[BencKey]]
+      keysToList: ToTraversable.Aux[K, List, Option[BencKey]],
+      ignors: Annotations.Aux[BencIgnore, A, T],
+      ignorsToList: ToTraversable.Aux[T, List, Option[BencIgnore]]
   ): BCodec[A] = instance(
-    BEncoder.genericEncoder[A, R, D, F, K],
+    BEncoder.genericEncoder[A, R, D, F, K, T],
     BDecoder.genericBDecoder[A, R, D, F, K]
   )
 }

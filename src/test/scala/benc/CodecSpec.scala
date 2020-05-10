@@ -70,6 +70,16 @@ class CodecSpec extends Specification with ScalaCheck {
       } yield ()
       result.isRight
     }
+    "transien annotation" in {
+      case class Pen(brand: String, @BencIgnore hello: String)
+      val codec: BCodec[Pen] = BCodec[Pen]
+      val result = for {
+        v  <- codec.encode(Pen("bic", "hello"))
+        bm <- v.bmap.toRight(BencError.NotFound)
+      } yield bm
+      result ==== Map("brand" -> BString(BitVector("bic".getBytes())))
+        .asRight[BencError]
+    }
 
     "custom fieldName in encoder" in Prop.forAll(idGen) { id =>
       implicit object upperCaseFiledName extends FieldName {
