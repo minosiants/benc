@@ -16,13 +16,15 @@
 
 package benc
 
-import benc.BDecoder.{ BMapDecoder, OptionBDecoder }
-import benc.BEncoder.{ BMapEncoder, OptionBEncoder }
+import benc.BDecoder.{ BMapDecoder, HListBDecoder, OptionBDecoder }
+import benc.BEncoder.{ BMapEncoder, HListBEncoder, OptionBEncoder }
 import benc.BType.BMap
 import scodec.bits.BitVector
 import shapeless._
 import shapeless.labelled.FieldType
 import cats.syntax.either._
+import shapeless.ops.hlist.ToTraversable
+import shapeless.ops.record.Keys
 
 /**
   * Interface over BEncoder and BDecoder
@@ -99,19 +101,21 @@ object BCodec {
         BDecoder.optionDEcoder[A].decode(bt)
     }
 
-  trait BMapCodec[A] extends BMapEncoder[A] with BMapDecoder[A] {}
+  trait HListBCodec[L <: HList] extends HListBEncoder[L] with HListBDecoder[L]
 
-  def bmapCodecinstance[A](
-      enc: BMapEncoder[A],
-      dec: BMapDecoder[A]
-  ): BMapCodec[A] =
-    new BMapCodec[A] {
-      override def encode(a: A): Result[BMap] = enc.encode(a)
+  object HListBCodec {
+    def instance[L <: HList](
+        enc: HListBEncoder[L],
+        dec: HListBDecoder[L]
+    ): HListBCodec[L] = new HListBCodec[L] {
+      override def decode(ann: Map[String, String]): BMapDecoder[L] =
+        dec.decode(ann)
 
-      override def decodeBMap(bm: BMap): Result[A] = dec.decodeBMap(bm)
+      override def encode(ann: Map[String, String]): BMapEncoder[L] =
+        enc.encode(ann)
     }
-
-  implicit val hnilCodec: BMapCodec[HNil] = bmapCodecinstance(
+  }
+  implicit val hnilCodec: HListBCodec[HNil] = HListBCodec.instance(
     BEncoder.hnilEncoder,
     BDecoder.hnilBDncoder
   )
@@ -121,19 +125,24 @@ object BCodec {
       fieldName: FieldName,
       witness: Witness.Aux[K],
       henc: Lazy[BCodec[H]],
-      tenc: BMapCodec[T]
-  ): BMapCodec[FieldType[K, H] :: T] =
-    bmapCodecinstance(
+      tenc: HListBCodec[T]
+  ): HListBCodec[FieldType[K, H] :: T] =
+    HListBCodec.instance(
       BEncoder.hlistEncoder[K, H, T],
       BDecoder.hlistBDecoder[K, H, T]
     )
 
-  implicit def genericBCodec[A, H](
+  implicit def genericBCodec[A, R <: HList, D <: HList, F <: HList, K <: HList](
       implicit
-      gen: LabelledGeneric.Aux[A, H],
-      hencoder: Lazy[BMapCodec[H]]
+      gen: LabelledGeneric.Aux[A, R],
+      underlyingE: Lazy[HListBDecoder[R]],
+      underlyingD: Lazy[HListBEncoder[R]],
+      fields: Keys.Aux[R, F],
+      fieldsToList: ToTraversable.Aux[F, List, Symbol],
+      keys: Annotations.Aux[BencKey, A, K],
+      keysToList: ToTraversable.Aux[K, List, Option[BencKey]]
   ): BCodec[A] = instance(
-    BEncoder.genericEncoder[A, H],
-    BDecoder.genericBDecoder[A, H]
+    BEncoder.genericEncoder[A, R, D, F, K],
+    BDecoder.genericBDecoder[A, R, D, F, K]
   )
 }

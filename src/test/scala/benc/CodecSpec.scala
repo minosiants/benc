@@ -60,6 +60,18 @@ class CodecSpec extends Specification with ScalaCheck {
       result ==== book.copy(id = Id("hello")).asRight
     }
 
+    "keyname annotation" in {
+      val newBrand = "brand2"
+      case class Pen(@BencKey(newBrand) brand: String)
+      val codec: BCodec[Pen] = BCodec[Pen]
+      val result = for {
+        v <- codec.encode(Pen("bic"))
+        _ <- v.bmap.flatMap(_.get(newBrand)).toRight(BencError.NotFound)
+        _ <- codec.decode(v)
+      } yield ()
+      result.isRight
+    }
+
     "custom fieldName in encoder" in Prop.forAll(idGen) { id =>
       implicit object upperCaseFiledName extends FieldName {
         override def name[K <: Symbol](k: K): String = k.name.toUpperCase

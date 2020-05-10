@@ -64,6 +64,9 @@ abstract sealed class BType extends Product with Serializable {
   def bmap: Option[Map[String, BType]] =
     fold(const(None), const(None), const(None), Some(_))
 
+  def rbmap: Result[Map[String, BType]] =
+    bmap.toRight(BencError.CodecError(s"Not bmap: ${this}"))
+
 }
 
 object BType {
