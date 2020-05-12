@@ -16,8 +16,8 @@
 
 package benc
 
-import benc.BDecoder.{ BMapDecoder, HListBDecoder, OptionBDecoder }
-import benc.BEncoder.{ BMapEncoder, HListBEncoder, OptionBEncoder }
+import benc.BDecoder.{ HListBDecoder, OptionBDecoder }
+import benc.BEncoder.{ HListBEncoder, OptionBEncoder }
 import cats.syntax.either._
 import scodec.bits.BitVector
 import shapeless._
@@ -107,32 +107,33 @@ object BCodec {
         enc: HListBEncoder[L],
         dec: HListBDecoder[L]
     ): HListBCodec[L] = new HListBCodec[L] {
-      override def decode(ann: Map[String, String]): BMapDecoder[L] =
+      override def decode(ann: Map[String, String]): BDecoder[L] =
         dec.decode(ann)
 
       override def encode(
           keys: Map[String, String],
           ignors: Map[String, Boolean]
-      ): BMapEncoder[L] =
+      ): BEncoder[L] =
         enc.encode(keys, ignors)
     }
-  }
-  implicit val hnilCodec: HListBCodec[HNil] = HListBCodec.instance(
-    BEncoder.hnilEncoder,
-    BDecoder.hnilBDncoder
-  )
 
-  implicit def hlistBCodec[K <: Symbol, H, T <: HList](
-      implicit
-      fieldName: FieldName,
-      witness: Witness.Aux[K],
-      henc: Lazy[BCodec[H]],
-      tenc: HListBCodec[T]
-  ): HListBCodec[FieldType[K, H] :: T] =
-    HListBCodec.instance(
-      BEncoder.hlistEncoder[K, H, T],
-      BDecoder.hlistBDecoder[K, H, T]
+    implicit val hnilCodec: HListBCodec[HNil] = HListBCodec.instance(
+      BEncoder.hnilEncoder,
+      BDecoder.hnilBDncoder
     )
+
+    implicit def hlistBCodec[K <: Symbol, H, T <: HList](
+        implicit
+        fieldName: FieldName,
+        witness: Witness.Aux[K],
+        henc: Lazy[BCodec[H]],
+        tenc: HListBCodec[T]
+    ): HListBCodec[FieldType[K, H] :: T] =
+      HListBCodec.instance(
+        BEncoder.hlistEncoder[K, H, T],
+        BDecoder.hlistBDecoder[K, H, T]
+      )
+  }
 
   implicit def genericBCodec[
       A,
@@ -156,4 +157,19 @@ object BCodec {
     BEncoder.genericEncoder[A, R, D, F, K, T],
     BDecoder.genericBDecoder[A, R, D, F, K]
   )
+
+  implicit val cnilBCodec: BCodec[CNil] =
+    BCodec.instance(BEncoder.cnilEncoder, BDecoder.cnilDecoder)
+
+  implicit def coproductBCodec[K <: Symbol, H, T <: Coproduct](
+      implicit
+      witness: Witness.Aux[K],
+      henc: Lazy[BCodec[H]],
+      tenc: BCodec[T]
+  ): BCodec[FieldType[K, H] :+: T] =
+    BCodec.instance(
+      BEncoder.coproductEncoder[K, H, T],
+      BDecoder.coproductDecoder[K, H, T]
+    )
+
 }

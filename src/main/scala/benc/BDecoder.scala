@@ -17,6 +17,7 @@
 package benc
 
 import benc.BType._
+import cats.Monad
 import cats.instances.either._
 import cats.instances.list._
 import cats.instances.option._
@@ -87,14 +88,30 @@ object BDecoder {
       override def decode(bt: BType): Result[A] = f(bt)
     }
 
-  def at[A: BDecoder](key: String): BDecoder[A] = instance {
-    case BMap(m) =>
-      m.get(key) match {
-        case Some(value) => BDecoder[A].decode(value)
-        case None        => BencError.CodecError(s"key $key not found").asLeft
+  /*implicit def bdecoderMonad: Monad[BDecoder] = new Monad[BDecoder] {
+    override def flatMap[A, B](
+        fa: BDecoder[A]
+    )(f: A => BDecoder[B]): BDecoder[B] =
+      fa.flatMap(f)
+
+    override def tailRecM[A, B](
+        a: A
+    )(f: A => BDecoder[Either[A, B]]): BDecoder[B] = {
+      f(a).flatMap {
+        case Left(value) => tailRecM(value)(f)
+        case Right(v)    => BDecoder.instance(_ => v.asRight)
       }
-    case _ => BencError.CodecError(s"$key not found. It is not bmap").asLeft
-  }
+    }
+
+    override def pure[A](x: A): BDecoder[A] = instance(_ => x.asRight)
+  }*/
+  def at[A: BDecoder](key: String): BDecoder[A] =
+    instance(
+      _.field(key)
+        .fold[Result[A]](BencError.CodecError(s"key $key not found").asLeft)(
+          BDecoder[A].decode
+        )
+    )
 
   def at[A: BDecoder](index: Int): BDecoder[A] = instance {
     case BList(list) =>
@@ -161,31 +178,19 @@ object BDecoder {
         BDecoder[A].decode(bt).map(Some(_))
     }
 
-  trait BMapDecoder[A] extends BDecoder[A] {
-    def decodeBMap(bm: BMap): Result[A]
-
-    def decode(bt: BType): Result[A] = {
-      bt.rbmap
-        .flatMap(v => decodeBMap(BMap(v)))
-    }
-  }
-  def bmapDInstance[A](f: BMap => Result[A]): BMapDecoder[A] =
-    new BMapDecoder[A] {
-      override def decodeBMap(bm: BMap): Result[A] = f(bm)
-    }
-
   trait HListBDecoder[L <: HList] {
-    def decode(ann: Map[String, String]): BMapDecoder[L]
+    def decode(ann: Map[String, String]): BDecoder[L]
   }
   object HListBDecoder {
     def instance[L <: HList](
-        f: Map[String, String] => BMapDecoder[L]
+        f: Map[String, String] => BDecoder[L]
     ): HListBDecoder[L] = new HListBDecoder[L] {
-      override def decode(ann: Map[String, String]): BMapDecoder[L] = f(ann)
+      override def decode(ann: Map[String, String]): BDecoder[L] = f(ann)
     }
+
   }
   implicit val hnilBDncoder: HListBDecoder[HNil] = HListBDecoder.instance { _ =>
-    bmapDInstance(
+    instance(
       _ => HNil.asRight
     )
   }
@@ -199,8 +204,8 @@ object BDecoder {
     HListBDecoder.instance { ann =>
       val name =
         ann.getOrElse(witness.value.name, fieldName.name(witness.value))
-      bmapDInstance { bmap =>
-        val value: Result[H] = (bmap.m.get(name), henc.value) match {
+      instance { bt =>
+        val value: Result[H] = (bt.field(name), henc.value) match {
           case (None, _: OptionBDecoder[_]) =>
             None.asInstanceOf[H].asRight[BencError]
           case (None, _) =>
@@ -210,7 +215,7 @@ object BDecoder {
         }
         for {
           head <- value
-          tail <- tenc.decode(ann).decodeBMap(bmap)
+          tail <- tenc.decode(ann).decode(bt)
         } yield field[K](head) :: tail
       }
     }
@@ -229,8 +234,8 @@ object BDecoder {
       fieldsToList: ToTraversable.Aux[F, List, Symbol],
       keys: Annotations.Aux[BencKey, A, K],
       keysToList: ToTraversable.Aux[K, List, Option[BencKey]]
-  ): BMapDecoder[A] = {
-    bmapDInstance { v =>
+  ): BDecoder[A] = {
+    instance { v =>
       val keyAnnotationMap: Map[String, String] =
         fieldsToList(fields())
           .map(_.name)
@@ -242,4 +247,21 @@ object BDecoder {
       underlying.value.decode(keyAnnotationMap).decode(v).map(gen.from)
     }
   }
+
+  implicit val cnilDecoder: BDecoder[CNil] = instance(
+    _ => BencError.CodecError("CNil").asLeft
+  )
+
+  implicit def coproductDecoder[K <: Symbol, L, R <: Coproduct](
+      implicit
+      key: Witness.Aux[K],
+      decodeL: Lazy[BDecoder[L]],
+      decodeR: BDecoder[R]
+  ): BDecoder[FieldType[K, L] :+: R] = BDecoder.instance { bt =>
+    bt.field(key.value.name) match {
+      case Some(value) => decodeL.value.decode(value).map(l => Inl(field(l)))
+      case None        => decodeR.decode(bt).map(Inr(_))
+    }
+  }
+
 }
