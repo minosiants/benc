@@ -218,19 +218,4 @@ object BEncoder {
     }
   }
 
-  implicit val cnilEncoder: BEncoder[CNil] = instance(
-    _ => sys.error("No JSON representation of CNil (this shouldn't happen)")
-  )
-
-  implicit def coproductEncoder[K <: Symbol, H, T <: Coproduct](
-      implicit
-      key: Witness.Aux[K],
-      encodeL: Lazy[BEncoder[H]],
-      encodeR: BEncoder[T]
-  ): BEncoder[FieldType[K, H] :+: T] = instance {
-    case Inl(l) =>
-      encodeL.value.encode(l).map(BType.singleBMap(key.value.name, _))
-    case Inr(r) => encodeR.encode(r)
-  }
-
 }
