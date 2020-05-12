@@ -16,6 +16,7 @@
 
 package benc
 
+import cats.Monoid
 import scodec.bits.BitVector
 
 import scala.Function._
@@ -25,6 +26,7 @@ import scala.collection.immutable.ListMap
   *  A data type representing possible <a href="https://wiki.theory.org/index.php/BitTorrentSpecification#Bencoding">Bencoding</a> values.
   */
 abstract sealed class BType extends Product with Serializable {
+  import BType._
 
   /**
     * The catamorphism for the JSON value data type.
@@ -64,9 +66,18 @@ abstract sealed class BType extends Product with Serializable {
   def bmap: Option[Map[String, BType]] =
     fold(const(None), const(None), const(None), Some(_))
 
-  def rbmap: Result[Map[String, BType]] =
-    bmap.toRight(BencError.CodecError(s"Not bmap: ${this}"))
 
+  def field(name: => String): Option[BType] = bmap.flatMap(_.get(name))
+  
+  def combine(bt: BType): BType = {
+    (this, bt) match {
+      case (a @ BString(_), b @ BString(_)) => bstringMonoid.combine(a, b)
+      case (a @ BNum(_), b @ BNum(_))       => bnumMonoid.combine(a, b)
+      case (a @ BList(_), b @ BList(_))     => blistMonoid.combine(a, b)
+      case (a @ BMap(_), b @ BMap(_))       => bmapMonoid.combine(a, b)
+      case (_, _)                           => this
+    }
+  }
 }
 
 object BType {
@@ -75,8 +86,28 @@ object BType {
   final case class BList(list: List[BType])    extends BType
   final case class BMap(m: Map[String, BType]) extends BType
 
-  object BMap {
-    val empty: BMap = BMap(ListMap.empty[String, BType])
-  }
+  implicit val bstringMonoid: Monoid[BString] =
+    Monoid.instance(
+      BString(BitVector.empty),
+      (a, b) => BString(a.bits ++ b.bits)
+    )
+
+  implicit val bnumMonoid: Monoid[BNum] =
+    Monoid.instance(BNum(0), (a, b) => BNum(a.value + b.value))
+
+  implicit val blistMonoid: Monoid[BList] =
+    Monoid.instance(BList(List.empty), (a, b) => BList(a.list ++ b.list))
+
+  implicit val bmapMonoid: Monoid[BMap] = Monoid.instance(
+    BMap(ListMap.empty[String, BType]),
+    (a, b) => BMap(a.m ++ b.m)
+  )
+
+  val emptyBString: BType = bstringMonoid.empty
+
+  val emptyBMap: BType = bmapMonoid.empty
+
+  def singleBMap(field: String, value: BType): BType =
+    BMap(ListMap(field -> value))
 
 }
