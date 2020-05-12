@@ -158,18 +158,4 @@ object BCodec {
     BDecoder.genericBDecoder[A, R, D, F, K]
   )
 
-  implicit val cnilBCodec: BCodec[CNil] =
-    BCodec.instance(BEncoder.cnilEncoder, BDecoder.cnilDecoder)
-
-  implicit def coproductBCodec[K <: Symbol, H, T <: Coproduct](
-      implicit
-      witness: Witness.Aux[K],
-      henc: Lazy[BCodec[H]],
-      tenc: BCodec[T]
-  ): BCodec[FieldType[K, H] :+: T] =
-    BCodec.instance(
-      BEncoder.coproductEncoder[K, H, T],
-      BDecoder.coproductDecoder[K, H, T]
-    )
-
 }

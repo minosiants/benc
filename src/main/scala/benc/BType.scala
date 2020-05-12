@@ -66,9 +66,8 @@ abstract sealed class BType extends Product with Serializable {
   def bmap: Option[Map[String, BType]] =
     fold(const(None), const(None), const(None), Some(_))
 
-
   def field(name: => String): Option[BType] = bmap.flatMap(_.get(name))
-  
+
   def combine(bt: BType): BType = {
     (this, bt) match {
       case (a @ BString(_), b @ BString(_)) => bstringMonoid.combine(a, b)

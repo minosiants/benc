@@ -88,7 +88,7 @@ object BDecoder {
       override def decode(bt: BType): Result[A] = f(bt)
     }
 
-  /*implicit def bdecoderMonad: Monad[BDecoder] = new Monad[BDecoder] {
+  implicit def bdecoderMonad: Monad[BDecoder] = new Monad[BDecoder] {
     override def flatMap[A, B](
         fa: BDecoder[A]
     )(f: A => BDecoder[B]): BDecoder[B] =
@@ -104,7 +104,8 @@ object BDecoder {
     }
 
     override def pure[A](x: A): BDecoder[A] = instance(_ => x.asRight)
-  }*/
+  }
+
   def at[A: BDecoder](key: String): BDecoder[A] =
     instance(
       _.field(key)
@@ -245,22 +246,6 @@ object BDecoder {
           }
           .toMap
       underlying.value.decode(keyAnnotationMap).decode(v).map(gen.from)
-    }
-  }
-
-  implicit val cnilDecoder: BDecoder[CNil] = instance(
-    _ => BencError.CodecError("CNil").asLeft
-  )
-
-  implicit def coproductDecoder[K <: Symbol, L, R <: Coproduct](
-      implicit
-      key: Witness.Aux[K],
-      decodeL: Lazy[BDecoder[L]],
-      decodeR: BDecoder[R]
-  ): BDecoder[FieldType[K, L] :+: R] = BDecoder.instance { bt =>
-    bt.field(key.value.name) match {
-      case Some(value) => decodeL.value.decode(value).map(l => Inl(field(l)))
-      case None        => decodeR.decode(bt).map(Inr(_))
     }
   }
 
