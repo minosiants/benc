@@ -76,11 +76,11 @@ class CodecSpec extends Specification with ScalaCheck {
       val codec: BCodec[Pen] = BCodec[Pen]
       val result             = codec.encode(Pen("bic", "hello"))
       result ==== BType
-        .singleBMap("brand", BType.stringBString("bic"))
+        .singleBMap("brand", BType.string("bic"))
         .asRight[BencError]
     }
     "at option with some value" in {
-      val bmap   = BType.singleBMap("brand", BType.stringBString("bic"))
+      val bmap   = BType.singleBMap("brand", BType.string("bic"))
       val result = BDecoder.at[Option[String]]("brand").decode(bmap)
 
       result ==== Some("bic").asRight[BencError]

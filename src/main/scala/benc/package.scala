@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package object benc extends BTypeSyntax {
+package object benc extends BTypeSyntax with BEncoderSyntax {
 
   /**
     * Result type
