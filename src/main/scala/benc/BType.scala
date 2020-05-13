@@ -66,6 +66,9 @@ abstract sealed class BType extends Product with Serializable {
   def bmap: Option[Map[String, BType]] =
     fold(const(None), const(None), const(None), Some(_))
 
+  /**
+    * Returns value from BMap under `name`
+    */
   def field(name: => String): Option[BType] = bmap.flatMap(_.get(name))
 
   def combine(bt: BType): BType = {
@@ -80,11 +83,13 @@ abstract sealed class BType extends Product with Serializable {
 }
 
 object BType {
+
   final case class BString(bits: BitVector)    extends BType
   final case class BNum(value: Long)           extends BType
   final case class BList(list: List[BType])    extends BType
   final case class BMap(m: Map[String, BType]) extends BType
 
+  // Monoids
   implicit val bstringMonoid: Monoid[BString] =
     Monoid.instance(
       BString(BitVector.empty),
@@ -101,11 +106,27 @@ object BType {
     BMap(ListMap.empty[String, BType]),
     (a, b) => BMap(a.m ++ b.m)
   )
+  ///
 
-  val emptyBString: BType               = bstringMonoid.empty
+  /**
+    * BString with empty bits
+    */
+  val emptyBString: BType = bstringMonoid.empty
+
+  /**
+    * BString with string value
+    */
   def stringBString(str: String): BType = BString(BitVector(str.getBytes))
-  val emptyBMap: BType                  = bmapMonoid.empty
 
+  /**
+    * BMap with empty map
+    */
+  val emptyBMap: BType = bmapMonoid.empty
+
+  /**
+    * BMap with a single value
+    * @return
+    */
   def singleBMap(field: String, value: BType): BType =
     BMap(ListMap(field -> value))
 
