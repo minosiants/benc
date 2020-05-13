@@ -1,5 +1,5 @@
 ## Benc
-![build](https://github.com/minosiants/benc/workflows/build/badge.svg)  
+![build](https://github.com/minosiants/benc/workflows/build/badge.svg)  [![javadoc](https://javadoc.io/badge2/com.minosiants/benc_2.13/javadoc.svg)](https://javadoc.io/doc/com.minosiants/benc_2.13)   
 Bencoding library for scala
 
 ### Overview
