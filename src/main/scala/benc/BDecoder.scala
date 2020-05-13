@@ -119,6 +119,10 @@ object BDecoder {
       }
     }
 
+  def down(key: String): BDecoder[BType] = instance(
+    _.field(key).toRight(BencError.CodecError(s"key $key not found"))
+  )
+
   def at[A](key: String)(implicit dec: BDecoder[A]): BDecoder[A] =
     instance { v =>
       (v.field(key), dec) match {
