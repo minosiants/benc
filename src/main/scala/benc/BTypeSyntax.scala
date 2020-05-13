@@ -40,4 +40,6 @@ final class BTypeOps(val bt: BType) extends AnyVal {
 
   def get[A: BDecoder](name: String): Result[A] =
     BDecoder.at[A](name).decode(bt)
+
+  def down(name: String): Result[BType] = BDecoder.down(name).decode(bt)
 }
