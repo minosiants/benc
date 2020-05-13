@@ -102,9 +102,9 @@ object BType {
     (a, b) => BMap(a.m ++ b.m)
   )
 
-  val emptyBString: BType = bstringMonoid.empty
-
-  val emptyBMap: BType = bmapMonoid.empty
+  val emptyBString: BType               = bstringMonoid.empty
+  def stringBString(str: String): BType = BString(BitVector(str.getBytes))
+  val emptyBMap: BType                  = bmapMonoid.empty
 
   def singleBMap(field: String, value: BType): BType =
     BMap(ListMap(field -> value))
