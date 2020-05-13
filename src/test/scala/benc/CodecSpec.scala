@@ -70,15 +70,27 @@ class CodecSpec extends Specification with ScalaCheck {
       } yield ()
       result.isRight
     }
-    "transien annotation" in {
+
+    "bencIgnore annotation" in {
       case class Pen(brand: String, @BencIgnore hello: String)
       val codec: BCodec[Pen] = BCodec[Pen]
-      val result = for {
-        v  <- codec.encode(Pen("bic", "hello"))
-        bm <- v.bmap.toRight(BencError.NotFound)
-      } yield bm
-      result ==== Map("brand" -> BString(BitVector("bic".getBytes())))
+      val result             = codec.encode(Pen("bic", "hello"))
+      result ==== BType
+        .singleBMap("brand", BType.stringBString("bic"))
         .asRight[BencError]
+    }
+    "at option with some value" in {
+      val bmap   = BType.singleBMap("brand", BType.stringBString("bic"))
+      val result = BDecoder.at[Option[String]]("brand").decode(bmap)
+
+      result ==== Some("bic").asRight[BencError]
+    }
+
+    "at option with none value" in {
+      val bmap   = BType.emptyBMap
+      val result = BDecoder.at[Option[String]]("brand").decode(bmap)
+
+      result ==== None.asRight[BencError]
     }
 
     "custom fieldName in encoder" in Prop.forAll(idGen) { id =>

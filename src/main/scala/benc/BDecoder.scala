@@ -17,7 +17,7 @@
 package benc
 
 import benc.BType._
-import cats.Monad
+import cats.{ Monad, MonadError }
 import cats.instances.either._
 import cats.instances.list._
 import cats.instances.option._
@@ -88,31 +88,49 @@ object BDecoder {
       override def decode(bt: BType): Result[A] = f(bt)
     }
 
-  implicit def bdecoderMonad: Monad[BDecoder] = new Monad[BDecoder] {
-    override def flatMap[A, B](
-        fa: BDecoder[A]
-    )(f: A => BDecoder[B]): BDecoder[B] =
-      fa.flatMap(f)
+  implicit def bdecoderMonad: MonadError[BDecoder, BencError] =
+    new MonadError[BDecoder, BencError] {
+      override def flatMap[A, B](
+          fa: BDecoder[A]
+      )(f: A => BDecoder[B]): BDecoder[B] =
+        fa.flatMap(f)
 
-    override def tailRecM[A, B](
-        a: A
-    )(f: A => BDecoder[Either[A, B]]): BDecoder[B] = {
-      f(a).flatMap {
-        case Left(value) => tailRecM(value)(f)
-        case Right(v)    => BDecoder.instance(_ => v.asRight)
+      override def tailRecM[A, B](
+          a: A
+      )(f: A => BDecoder[Either[A, B]]): BDecoder[B] = {
+        f(a).flatMap {
+          case Left(value) => tailRecM(value)(f)
+          case Right(v)    => BDecoder.instance(_ => v.asRight)
+        }
+      }
+
+      override def pure[A](x: A): BDecoder[A] = instance(_ => x.asRight)
+
+      override def raiseError[A](e: BencError): BDecoder[A] =
+        BDecoder.instance(_ => e.asLeft)
+
+      override def handleErrorWith[A](
+          fa: BDecoder[A]
+      )(f: BencError => BDecoder[A]): BDecoder[A] = BDecoder.instance { v =>
+        fa.decode(v) match {
+          case Left(e)      => f(e).decode(v)
+          case r @ Right(_) => r
+        }
       }
     }
 
-    override def pure[A](x: A): BDecoder[A] = instance(_ => x.asRight)
-  }
+  def at[A](key: String)(implicit dec: BDecoder[A]): BDecoder[A] =
+    instance { v =>
+      (v.field(key), dec) match {
+        case (None, _: OptionBDecoder[_]) =>
+          None.asInstanceOf[A].asRight[BencError]
+        case (None, _) =>
+          BencError.CodecError(s"key $key not found").asLeft
+        case (Some(value), d) =>
+          d.decode(value)
 
-  def at[A: BDecoder](key: String): BDecoder[A] =
-    instance(
-      _.field(key)
-        .fold[Result[A]](BencError.CodecError(s"key $key not found").asLeft)(
-          BDecoder[A].decode
-        )
-    )
+      }
+    }
 
   def at[A: BDecoder](index: Int): BDecoder[A] = instance {
     case BList(list) =>
@@ -205,22 +223,14 @@ object BDecoder {
     HListBDecoder.instance { ann =>
       val name =
         ann.getOrElse(witness.value.name, fieldName.name(witness.value))
-      instance { bt =>
-        val value: Result[H] = (bt.field(name), henc.value) match {
-          case (None, _: OptionBDecoder[_]) =>
-            None.asInstanceOf[H].asRight[BencError]
-          case (None, _) =>
-            BencError.CodecError(s"filed $name is missing").asLeft[H]
-          case (Some(bt), dec) =>
-            dec.decode(bt)
-        }
-        for {
-          head <- value
-          tail <- tenc.decode(ann).decode(bt)
-        } yield field[K](head) :: tail
-      }
+      for {
+        head <- at[H](name)(henc.value)
+        tail <- tenc.decode(ann)
+      } yield field[K](head) :: tail
+
     }
   }
+
   implicit def genericBDecoder[
       A,
       R <: HList,
