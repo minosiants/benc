@@ -37,4 +37,7 @@ final class BTypeOps(val bt: BType) extends AnyVal {
     * Converts this `BType` value to A representation
     */
   def as[A: BDecoder]: Result[A] = BDecoder[A].decode(bt)
+
+  def get[A: BDecoder](name: String): Result[A] =
+    BDecoder.at[A](name).decode(bt)
 }

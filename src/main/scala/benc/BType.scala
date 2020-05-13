@@ -116,7 +116,17 @@ object BType {
   /**
     * BString with string value
     */
-  def stringBString(str: String): BType = BString(BitVector(str.getBytes))
+  def string(str: String): BType = BString(BitVector(str.getBytes))
+
+  /**
+    * BString with bits value
+    */
+  def bits(bits: BitVector): BType = BString(bits)
+
+  /**
+    * BString with bytes value
+    */
+  def bytes(bytes: Array[Byte]): BType = BString(BitVector(bytes))
 
   /**
     * BMap with empty map
@@ -130,4 +140,26 @@ object BType {
   def singleBMap(field: String, value: BType): BType =
     BMap(ListMap(field -> value))
 
+  def map(r: (String, BType)*): BType =
+    BMap(r.toMap)
+
+  /**
+    * BList empty
+    */
+  val emptyBList: BType = blistMonoid.empty
+
+  /**
+    * BList with elements
+    */
+  def list(elements: BType*): BType = BList(elements.toList)
+
+  /**
+    * BNum with n value
+    */
+  def int(n: Int): BType = BNum(n)
+
+  /**
+    * BNum with n value
+    */
+  def long(n: Long): BType = BNum(n)
 }
