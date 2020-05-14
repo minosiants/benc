@@ -16,7 +16,7 @@
 
 package benc
 
-import cats.Show
+import cats.{ Eq, Show }
 
 import scala.util.control.NoStackTrace
 
@@ -32,8 +32,9 @@ object BencError {
   final case object NotFound               extends BencError
   final case class CodecError(msg: String) extends BencError
 
-  implicit val showError: Show[BencError] = Show.show {
+  implicit val showBenError: Show[BencError] = Show.show {
     case NotFound        => "Not found"
     case CodecError(msg) => s"Codec error: $msg"
   }
+  implicit val eqBencError: Eq[BencError] = Eq.fromUniversalEquals
 }
