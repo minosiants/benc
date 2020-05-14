@@ -17,12 +17,13 @@
 package benc
 
 import benc.BType._
-import cats.{ Monad, MonadError }
+import cats.MonadError
 import cats.instances.either._
 import cats.instances.list._
 import cats.instances.option._
 import cats.syntax.either._
 import cats.syntax.traverse._
+import scodec.Decoder
 import scodec.bits.BitVector
 import scodec.codecs._
 import shapeless._
@@ -147,6 +148,17 @@ object BDecoder {
   }
 
   /**
+    * Scodec decoder
+    */
+  def sc[A](implicit dec: Decoder[A]): BDecoder[A] =
+    BDecoder.bitVectorBDecoder.emap(
+      dec
+        .decodeValue(_)
+        .toEither
+        .leftMap(err => BencError.CodecError(err.message))
+    )
+
+  /**
     * BDecoder[BitVector]
     */
   implicit val bitVectorBDecoder: BDecoder[BitVector] = instance(
@@ -176,6 +188,11 @@ object BDecoder {
     * BDecoder[Int]
     */
   implicit val intBDecoder: BDecoder[Int] = longBDecoder.map(_.toInt)
+
+  /**
+    * BDecoder[Boolean] - if BNum > 0 true otherwise false
+    */
+  implicit val booleanBDecoder: BDecoder[Boolean] = intBDecoder.map(_ > 0)
 
   /**
     * BDecoder[List[A]]
