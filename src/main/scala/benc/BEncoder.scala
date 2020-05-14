@@ -21,6 +21,7 @@ import cats.instances.either._
 import cats.instances.list._
 import cats.syntax.either._
 import cats.syntax.traverse._
+import scodec.Encoder
 import scodec.bits.BitVector
 import scodec.codecs._
 import shapeless._
@@ -71,6 +72,14 @@ object BEncoder {
   def instance[A](f: A => Result[BType]): BEncoder[A] = new BEncoder[A] {
     override def encode(a: A): Result[BType] = f(a)
   }
+
+  /**
+    * Scodec encoder
+    */
+  def sc[A](implicit enc: Encoder[A]): BEncoder[A] =
+    BEncoder.bitVectorBEncoder.econtramap(
+      enc.encode(_).toEither.leftMap(err => BencError.CodecError(err.message))
+    )
 
   /**
     * BEncoder[BitVector]
