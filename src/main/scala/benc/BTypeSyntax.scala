@@ -42,4 +42,7 @@ final class BTypeOps(val bt: BType) extends AnyVal {
     BDecoder.at[A](name).decode(bt)
 
   def down(name: String): Result[BType] = BDecoder.down(name).decode(bt)
+
+  def -(name: String): Result[BType] =
+    bt.remove(name).toRight(BencError.CodecError(s"field '$name' is not found"))
 }
